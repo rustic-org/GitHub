@@ -17,12 +17,20 @@ jobs:
         id: changed-files
         run: |
           if ${{ github.event_name == 'pull_request' }}; then
-              echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> $GITHUB_OUTPUT
+              git diff --name-status -r HEAD^1 HEAD > changed_files.txt
           else
-              echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> $GITHUB_OUTPUT
+              git diff --name-status ${{ github.event.before }} ${{ github.event.after }} > changed_files.txt
           fi
-      - name: List changed files
+          echo "changed_files=changed_files.txt" >> $GITHUB_ENV
+      - name: List changed files with actions
         run: |
-          for file in ${{ steps.changed-files.outputs.changed_files }}; do
-              echo "$file was changed"
-          done
+          while read -r line; do
+              action=$(echo $line | cut -d' ' -f1)
+              file=$(echo $line | cut -d' ' -f2-)
+              case $action in
+                  A) echo "$file was added";;
+                  M) echo "$file was modified";;
+                  D) echo "$file was deleted";;
+                  *) echo "Unknown action for file: $file";;
+              esac
+          done < ${{ env.changed_files }}

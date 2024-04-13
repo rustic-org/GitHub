@@ -1,34 +1,29 @@
 use std::fs;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 use std::sync::Arc;
 
 use actix_multipart::Multipart;
-use actix_web::{http, HttpRequest, HttpResponse, web};
+use actix_web::{HttpRequest, HttpResponse, web};
 use futures_util::StreamExt as _;
 
 use crate::{constant, squire};
 
-/// Constructs an `HttpResponse` for failed `session_token` verification.
-///
-/// # Arguments
-///
-/// * `auth_response` - The authentication response containing details of the failure.
-/// * `config` - Configuration data for the application.
-///
-/// # Returns
-///
-/// Returns an `HttpResponse` with a redirect, setting a cookie with the failure detail.
-pub fn failed_auth() -> HttpResponse {
-    let mut response = HttpResponse::build(http::StatusCode::UNAUTHORIZED);
-    response.finish()
-}
-
+/// Struct for the authentication response.
 pub struct AuthResponse {
     ok: bool,
     path: String,
 }
 
+/// Verifies the token received against the one set in env vars.
+///
+/// * `request` - A reference to the Actix web `HttpRequest` object.
+/// * `config` - Configuration data for the application.
+///
+/// # Returns
+///
+/// A configured `AuthResponse` instance.
 pub fn verify_token(request: &HttpRequest,
                     config: &web::Data<Arc<squire::settings::Config>>) -> AuthResponse {
     let headers = request.headers();
@@ -51,10 +46,10 @@ pub fn verify_token(request: &HttpRequest,
         log::error!("Invalid token: received {}", auth)
     }
     log::error!("No auth header received");
-    return AuthResponse {
+    AuthResponse {
         ok: false,
         path: String::new(),
-    };
+    }
 }
 
 /// Saves files locally by breaking them into chunks.
@@ -83,7 +78,7 @@ pub async fn save_files(request: HttpRequest,
     squire::custom::log_connection(&request, &session);
     let auth_response = verify_token(&request, &config);
     if !auth_response.ok {
-        return failed_auth();
+        return HttpResponse::Unauthorized().finish();
     }
 
     if auth_response.path.is_empty() {
@@ -98,7 +93,7 @@ pub async fn save_files(request: HttpRequest,
             return HttpResponse::BadRequest().finish();
         }
     }
-    let mut destination = File::create(&true_path).unwrap();
+    let mut destination = File::create(true_path).unwrap();
     while let Some(item) = payload.next().await {
         match item {
             Ok(mut field) => {
@@ -128,6 +123,30 @@ pub async fn save_files(request: HttpRequest,
     HttpResponse::Ok().finish()
 }
 
+/// Deletes empty directories after removing the requested file.
+///
+/// # Arguments
+///
+/// * `path` - Filepath that was removed.
+/// * `root` - GitHub source directory that has to be retained.
+fn delete_empty_folders(path: &Path, root: &Path) {
+    if let Some(parent) = path.parent() {
+        // Recursively delete empty directories starting from the parent directory
+        if parent.is_dir() && fs::read_dir(parent).map_or(false, |mut dir| dir.next().is_none()) {
+            if parent == root {
+                return;
+            }
+            if let Err(err) = fs::remove_dir(parent) {
+                log::error!("Error deleting empty directory: {}", err);
+            } else {
+                log::info!("Deleted empty directory {:?}", parent);
+                // Check recursively for more empty directories
+                delete_empty_folders(parent, root);
+            }
+        }
+    }
+}
+
 /// Saves files locally by breaking them into chunks.
 ///
 /// # Arguments
@@ -138,8 +157,7 @@ pub async fn save_files(request: HttpRequest,
 /// * `config` - Configuration data for the application.
 ///
 /// ## References
-/// - [Server Side](https://docs.rs/actix-multipart/latest/actix_multipart/struct.Multipart.html)
-/// - [Client Side (not implemented)](https://accreditly.io/articles/uploading-large-files-with-chunking-in-javascript)
+/// - [Chunk Upload](https://docs.rs/actix-multipart/latest/actix_multipart/struct.Multipart.html)
 ///
 /// # Returns
 ///
@@ -153,7 +171,7 @@ pub async fn remove_files(request: HttpRequest,
     squire::custom::log_connection(&request, &session);
     let auth_response = verify_token(&request, &config);
     if !auth_response.ok {
-        return failed_auth();
+        return HttpResponse::Unauthorized().finish();
     }
     if auth_response.path.is_empty() {
         log::warn!("No path received!!");
@@ -164,6 +182,7 @@ pub async fn remove_files(request: HttpRequest,
         return match fs::remove_file(destination) {
             Ok(_) => {
                 log::info!("Deleted file {:?}", destination);
+                delete_empty_folders(destination, &config.github_source);
                 HttpResponse::Ok().finish()
             }
             Err(err) => {

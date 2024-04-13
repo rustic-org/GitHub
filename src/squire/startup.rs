@@ -318,7 +318,7 @@ fn validate_vars() -> settings::Config {
     }
     if config.authorization.len() < 4 {
         let err2 = "\nauthorization\n\tshould be at least 4 or more characters [value=invalid]\n";
-        errors.push_str(&err2);
+        errors.push_str(err2);
     }
     if !errors.is_empty() {
         panic!("{}", errors);

@@ -39,3 +39,8 @@ jobs:
                   *) echo "Unknown action for file: $file";;
               esac
           done < ${{ env.changed_files }}
+      - name: Simply print
+        run: |
+          while read -r line; do
+              echo $line
+          done < ${{ env.changed_files }}

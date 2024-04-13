@@ -1,0 +1,44 @@
+name: Print Changed Files
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  print_changed_files:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Print changed files
+        run: |
+          echo "Added files:"
+          git diff --name-status ${{ github.event.before }} ${{ github.sha }} | grep '^A'
+          
+          echo "Removed files:"
+          git diff --name-status ${{ github.event.before }} ${{ github.sha }} | grep '^D'
+          
+          echo "Moved files:"
+          git diff --find-renames=50% --name-status ${{ github.event.before }} ${{ github.sha }} | grep '^R' | while read -r status file; do
+            old_path=$(echo $file | awk '{print $2}')
+            new_path=$(echo $file | awk '{print $3}')
+            echo "Removed: $old_path"
+            echo "Added: $new_path"
+          done
+          
+          echo "Copied files:"
+          git diff --name-status ${{ github.event.before }} ${{ github.sha }} | grep '^C' | while read -r status file; do
+            new_path=$(echo $file | awk '{print $2}')
+            echo "Added: $new_path"
+          done
+          
+          echo "Renamed files:"
+          git diff --find-renames=50% --name-status ${{ github.event.before }} ${{ github.sha }} | grep '^R' | while read -r status file; do
+            old_path=$(echo $file | awk '{print $2}')
+            new_path=$(echo $file | awk '{print $3}')
+            echo "Removed: $old_path"
+            echo "Added: $new_path"
+          done

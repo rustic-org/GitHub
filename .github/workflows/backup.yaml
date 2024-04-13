@@ -12,17 +12,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Print changed files
         run: |
           echo "Added files:"
-          git diff --name-status ${{ github.event.before }} ${{ github.sha }} | grep '^A'
+          git diff --name-status ${{ github.event.before }} ${{ github.event.after }} | grep '^A'
           
           echo "Removed files:"
-          git diff --name-status ${{ github.event.before }} ${{ github.sha }} | grep '^D'
+          git diff --name-status ${{ github.event.before }} ${{ github.event.after }} | grep '^D'
           
           echo "Moved files:"
-          git diff --find-renames=50% --name-status ${{ github.event.before }} ${{ github.sha }} | grep '^R' | while read -r status file; do
+          git diff --find-renames=50% --name-status ${{ github.event.before }} ${{ github.event.after }} | grep '^R' | while read -r status file; do
             old_path=$(echo $file | awk '{print $2}')
             new_path=$(echo $file | awk '{print $3}')
             echo "Removed: $old_path"
@@ -30,13 +32,13 @@ jobs:
           done
           
           echo "Copied files:"
-          git diff --name-status ${{ github.event.before }} ${{ github.sha }} | grep '^C' | while read -r status file; do
+          git diff --name-status ${{ github.event.before }} ${{ github.event.after }} | grep '^C' | while read -r status file; do
             new_path=$(echo $file | awk '{print $2}')
             echo "Added: $new_path"
           done
           
           echo "Renamed files:"
-          git diff --find-renames=50% --name-status ${{ github.event.before }} ${{ github.sha }} | grep '^R' | while read -r status file; do
+          git diff --find-renames=50% --name-status ${{ github.event.before }} ${{ github.event.after }} | grep '^R' | while read -r status file; do
             old_path=$(echo $file | awk '{print $2}')
             new_path=$(echo $file | awk '{print $3}')
             echo "Removed: $old_path"

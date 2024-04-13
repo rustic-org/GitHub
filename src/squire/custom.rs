@@ -10,11 +10,7 @@ use crate::constant;
 /// * `session` - Session struct that holds the `session_mapping` and `session_tracker` to handle sessions.
 ///
 /// This function logs the host and user agent information of the incoming connection.
-///
-/// # Returns
-///
-/// Returns a tuple of the host, and the last streamed file path.
-pub fn log_connection(request: &HttpRequest, session: &constant::Session) -> (String, String) {
+pub fn log_connection(request: &HttpRequest, session: &constant::Session) {
     let host = request.connection_info().host().to_string();
     let mut tracker = session.tracker.lock().unwrap();
     if tracker.get(&host).is_none() {
@@ -24,5 +20,4 @@ pub fn log_connection(request: &HttpRequest, session: &constant::Session) -> (St
             log::info!("User agent: {}", user_agent.to_str().unwrap())
         }
     }
-    return (host.clone(), tracker.get(&host).map_or("".to_string(), |s| s.to_string()));
 }

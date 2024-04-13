@@ -62,8 +62,7 @@ pub fn verify_token(request: &HttpRequest,
 /// * `config` - Configuration data for the application.
 ///
 /// ## References
-/// - [Server Side](https://docs.rs/actix-multipart/latest/actix_multipart/struct.Multipart.html)
-/// - [Client Side (not implemented)](https://accreditly.io/articles/uploading-large-files-with-chunking-in-javascript)
+/// - [Chunk Upload](https://docs.rs/actix-multipart/latest/actix_multipart/struct.Multipart.html)
 ///
 /// # Returns
 ///
@@ -80,17 +79,16 @@ pub async fn save_files(request: HttpRequest,
     if !auth_response.ok {
         return HttpResponse::Unauthorized().finish();
     }
-
     if auth_response.path.is_empty() {
-        log::warn!("No path received!!");
-        return HttpResponse::BadRequest().finish();
+        log::warn!("'content-location' header is missing");
+        return HttpResponse::BadRequest().json("'content-location' header is missing");
     }
-
     let true_path = &config.github_source.join(auth_response.path);
     if let Some(parent) = true_path.parent() {
         if let Err(err) = fs::create_dir_all(parent) {
-            log::error!("Error creating directories: {}", err);
-            return HttpResponse::BadRequest().finish();
+            let error = format!("Error creating directories: {}", err);
+            log::error!("{}", error);
+            return HttpResponse::ExpectationFailed().json(error);
         }
     }
     let mut destination = File::create(true_path).unwrap();
@@ -147,17 +145,13 @@ fn delete_empty_folders(path: &Path, root: &Path) {
     }
 }
 
-/// Saves files locally by breaking them into chunks.
+/// Deletes files that were removed in GH commits.
 ///
 /// # Arguments
 ///
 /// * `request` - A reference to the Actix web `HttpRequest` object.
-/// * `payload` - Mutable multipart struct that is sent from the UI as `FormData`.
 /// * `session` - Session struct that holds the `session_mapping` and `session_tracker` to handle sessions.
 /// * `config` - Configuration data for the application.
-///
-/// ## References
-/// - [Chunk Upload](https://docs.rs/actix-multipart/latest/actix_multipart/struct.Multipart.html)
 ///
 /// # Returns
 ///
@@ -174,8 +168,8 @@ pub async fn remove_files(request: HttpRequest,
         return HttpResponse::Unauthorized().finish();
     }
     if auth_response.path.is_empty() {
-        log::warn!("No path received!!");
-        return HttpResponse::BadRequest().finish();
+        log::warn!("'content-location' header is missing");
+        return HttpResponse::BadRequest().json("'content-location' header is missing");
     }
     let destination = &config.github_source.join(&auth_response.path);
     if destination.exists() {
@@ -186,11 +180,13 @@ pub async fn remove_files(request: HttpRequest,
                 HttpResponse::Ok().finish()
             }
             Err(err) => {
-                log::error!("Error deleting file: {}", err);
-                HttpResponse::ExpectationFailed().finish()
+                let error = format!("Error deleting file: {}", err);
+                log::error!("{}", error);
+                HttpResponse::ExpectationFailed().json(error)
             }
         };
     };
-    log::warn!("File not found: {:?}", destination);
-    HttpResponse::NotFound().finish()
+    let error = format!("File not found: {:?}", destination);
+    log::warn!("{}", error);
+    HttpResponse::NotFound().json(error)
 }

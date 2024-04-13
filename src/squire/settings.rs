@@ -5,16 +5,16 @@ use std::net::ToSocketAddrs;
 pub struct Config {
     /// Dictionary of key-value pairs for authorization (username and password).
     pub authorization: String,
-    /// Source path for media files.
+    /// Directory path for source control.
     pub github_source: path::PathBuf,
 
     /// Debug flag to enable debug level logging.
     pub debug: bool,
     /// Boolean flag to enable UTC timezone in logging. Defaults to local timezone.
     pub utc_logging: bool,
-    /// Host IP address for media streaming.
+    /// Server IP address.
     pub server_host: String,
-    /// Port number for hosting the application.
+    /// Server port number.
     pub server_port: u16,
 
     /// Number of worker threads to spin up the server.
@@ -44,8 +44,8 @@ pub fn default_utc_logging() -> bool { true }
 /// Returns the default value for SSL files.
 pub fn default_ssl() -> path::PathBuf { path::PathBuf::new() }
 
-/// Returns the default media host based on the local machine's IP address.
-pub fn default_media_host() -> String {
+/// Returns the default server host based on the local machine's IP address.
+pub fn default_server_host() -> String {
     let hostname = "localhost";
     match (hostname, 0).to_socket_addrs() {
         Ok(mut addrs) => {
@@ -60,8 +60,8 @@ pub fn default_media_host() -> String {
     "localhost".to_string()
 }
 
-/// Returns the default media port (8000)
-pub fn default_media_port() -> u16 { 8000 }
+/// Returns the default server port (8000)
+pub fn default_server_port() -> u16 { 8000 }
 
 /// Returns the default number of worker threads (half of logical cores)
 pub fn default_workers() -> usize {

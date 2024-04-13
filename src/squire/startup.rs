@@ -19,7 +19,7 @@ pub fn init_logger(debug: bool, utc: bool, crate_name: &String) {
         ));
         std::env::set_var("RUST_BACKTRACE", "1");
     } else {
-        // Set Actix logging to warning mode since it becomes too noisy when streaming large files
+        // Set Actix logging to warning mode since it becomes too noisy
         std::env::set_var("RUST_LOG", format!(
             "actix_web=warn,actix_server=warn,{}=info", crate_name
         ));
@@ -271,8 +271,8 @@ fn load_env_vars() -> settings::Config {
     let (authorization, github_source) = mandatory_vars();
     let debug = parse_bool("debug").unwrap_or(settings::default_debug());
     let utc_logging = parse_bool("utc_logging").unwrap_or(settings::default_utc_logging());
-    let server_host = std::env::var("server_host").unwrap_or(settings::default_media_host());
-    let server_port = parse_u16("server_port").unwrap_or(settings::default_media_port());
+    let server_host = std::env::var("server_host").unwrap_or(settings::default_server_host());
+    let server_port = parse_u16("server_port").unwrap_or(settings::default_server_port());
     let workers = parse_usize("workers").unwrap_or(settings::default_workers());
     let max_connections = parse_usize("max_connections").unwrap_or(settings::default_max_connections());
     let websites = parse_vec("websites").unwrap_or(settings::default_websites());

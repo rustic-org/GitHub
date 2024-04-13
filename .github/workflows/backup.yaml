@@ -31,6 +31,11 @@ jobs:
                   A) echo "$file was added";;
                   M) echo "$file was modified";;
                   D) echo "$file was deleted";;
+                  R) old_file=$(echo $file | cut -d$'\t' -f1)
+                     new_file=$(echo $file | cut -d$'\t' -f2)
+                     echo "$old_file was renamed to $new_file";;
+                  C) new_file=$(echo $file | cut -d$'\t' -f2)
+                     echo "$new_file was copied";;
                   *) echo "Unknown action for file: $file";;
               esac
           done < ${{ env.changed_files }}

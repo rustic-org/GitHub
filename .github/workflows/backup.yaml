@@ -34,6 +34,9 @@ jobs:
                   R) old_file=$(echo $file | cut -d$'\t' -f1)
                      new_file=$(echo $file | cut -d$'\t' -f2)
                      echo "$old_file was renamed to $new_file";;
+                  R100) old_file=$(echo $file | cut -d$'\t' -f1)
+                     new_file=$(echo $file | cut -d$'\t' -f2)
+                     echo "$old_file was renamed/moved to $new_file";;
                   C) new_file=$(echo $file | cut -d$'\t' -f2)
                      echo "$new_file was copied";;
                   *) echo "Unknown action for file: $file";;

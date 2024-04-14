@@ -10,3 +10,5 @@ pub mod ascii_art;
 pub mod middleware;
 /// Module that handles parsing command line arguments.
 pub mod parser;
+/// Module that runs shell commands.
+pub mod command;

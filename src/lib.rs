@@ -5,6 +5,7 @@
 extern crate actix_web;
 
 use std::io;
+use std::process::exit;
 
 use actix_web::{App, HttpServer, middleware, web};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
@@ -39,6 +40,10 @@ pub async fn start() -> io::Result<()> {
 
     squire::startup::init_logger(config.debug, config.utc_logging, &metadata.crate_name);
     println!("{}[v{}] - {}", &metadata.pkg_name, &metadata.pkg_version, &metadata.description);
+    if !squire::command::run("git version") {
+        println!("'git' command line is mandatory!!");
+        exit(1)
+    }
     squire::ascii_art::random();
 
     if config.secure_session {

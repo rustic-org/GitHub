@@ -8,12 +8,16 @@ use actix_multipart::Multipart;
 use actix_web::{HttpRequest, HttpResponse, web};
 use futures_util::StreamExt as _;
 
-use crate::{constant, squire};
+use crate::{constant, squire, routes};
+
+// todo: remove upload and delete endpoints
+//  instead, just send a bulk map to the '/backup' endpoint and download files in a thread
 
 /// Struct for the authentication response.
 pub struct AuthResponse {
     ok: bool,
     path: String,
+    repository: String,
 }
 
 /// Verifies the token received against the one set in env vars.
@@ -30,25 +34,36 @@ pub fn verify_token(request: &HttpRequest,
     if let Some(authorization) = headers.get("authorization") {
         let auth = authorization.to_str().unwrap().to_string();
         if format!("Bearer {}", config.authorization) == auth {
-            let mut file_path = String::new();
+            let mut location = String::new();
             if let Some(path) = headers.get("content-location") {
-                if let Ok(path_str) = path.to_str() {
-                    file_path = path_str.to_string();
+                if let Ok(location_str) = path.to_str() {
+                    location = location_str.to_string();
                 } else {
-                    log::error!("Failed to convert 'path' header to string");
+                    log::error!("Failed to convert 'content-location' header to string");
                 }
             }
-            return AuthResponse {
-                ok: true,
-                path: file_path,
+            let (repository, path) = {
+                let mut parts = location.split(';');
+                let repository = parts.next().unwrap_or("");
+                let path = parts.next().unwrap_or("");
+                (repository.to_string(), path.to_string())
             };
+            return AuthResponse { ok: true, path, repository };
+        } else {
+            log::error!("Invalid token: {}", auth);
+            AuthResponse {
+                ok: false,
+                path: String::new(),
+                repository: String::new(),
+            }
         }
-        log::error!("Invalid token: received {}", auth)
-    }
-    log::error!("No auth header received");
-    AuthResponse {
-        ok: false,
-        path: String::new(),
+    } else {
+        log::error!("No auth header received");
+        AuthResponse {
+            ok: false,
+            path: String::new(),
+            repository: String::new(),
+        }
     }
 }
 
@@ -79,11 +94,23 @@ pub async fn save_files(request: HttpRequest,
     if !auth_response.ok {
         return HttpResponse::Unauthorized().finish();
     }
-    if auth_response.path.is_empty() {
-        log::warn!("'content-location' header is missing");
-        return HttpResponse::BadRequest().json("'content-location' header is missing");
+    if auth_response.path.is_empty() || auth_response.repository.is_empty() {
+        log::warn!("'content-location' header is invalid");
+        return HttpResponse::BadRequest().json("'content-location' header is invalid");
     }
-    let true_path = &config.github_source.join(auth_response.path);
+    let repo_validation = routes::intro::validate_repo(
+        &auth_response.repository, &config.github_source
+    );
+    if !repo_validation.ok {
+        return HttpResponse::BadRequest().json("unable to locate or clone repository in data source");
+    }
+    if repo_validation.cloned {
+        log::info!("Repository '{}' was cloned, so no point in proceeding further", &auth_response.repository);
+        return HttpResponse::Ok().finish();
+    }
+    let true_path = &config.github_source
+        .join(&auth_response.repository)
+        .join(&auth_response.path);
     if let Some(parent) = true_path.parent() {
         if let Err(err) = fs::create_dir_all(parent) {
             let error = format!("Error creating directories: {}", err);
@@ -167,11 +194,23 @@ pub async fn remove_files(request: HttpRequest,
     if !auth_response.ok {
         return HttpResponse::Unauthorized().finish();
     }
-    if auth_response.path.is_empty() {
-        log::warn!("'content-location' header is missing");
-        return HttpResponse::BadRequest().json("'content-location' header is missing");
+    if auth_response.path.is_empty() || auth_response.repository.is_empty() {
+        log::warn!("'content-location' header is invalid");
+        return HttpResponse::BadRequest().json("'content-location' header is invalid");
     }
-    let destination = &config.github_source.join(&auth_response.path);
+    let repo_validation = routes::intro::validate_repo(
+        &auth_response.repository, &config.github_source
+    );
+    if !repo_validation.ok {
+        return HttpResponse::BadRequest().json("unable to locate or clone repository in data source");
+    }
+    if repo_validation.cloned {
+        log::info!("Repository '{}' was cloned, so no point in proceeding further", &auth_response.repository);
+        return HttpResponse::Ok().finish();
+    }
+    let destination = &config.github_source
+        .join(&auth_response.repository)
+        .join(&auth_response.path);
     if destination.exists() {
         return match fs::remove_file(destination) {
             Ok(_) => {

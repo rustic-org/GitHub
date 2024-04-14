@@ -33,6 +33,7 @@ jobs:
         if: env.backup_flag == 'true'
         run: |
           cat << 'EOF' > script.py
+          import os
           from pprint import pprint
           with open('changed_files.txt') as file:
               changed = file.readlines()
@@ -41,7 +42,10 @@ jobs:
           for change in changed:
               action, file_path = change.strip().rsplit('\t', 1)
               payload[mapped.get(action, 'undefined')].append(file_path)
+          payload['repository'] = ${{ github.repository }}
           pprint(payload)
+          for key in os.environ:
+              print(key)
           EOF
       - name: Get changed files
         id: changed-files

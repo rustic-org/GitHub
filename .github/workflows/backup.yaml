@@ -19,15 +19,17 @@ jobs:
           from_commit="${{ github.event.before }}"
           to_commit="${{ github.event.after }}"
           commits_on_head="$(git rev-list HEAD)"
+          backup_flag=false
           if [[ $commits_on_head =~ (^|[[:space:]])$from_commit($|[[:space:]]) ]] && \
              [[ $commits_on_head =~ (^|[[:space:]])$to_commit($|[[:space:]]) ]]
           then
-              echo "backup_flag=true" >> $GITHUB_ENV
+              echo "Setting backup flag to true"
+              backup_flag=true
           else
               echo "Either before commit [$from_commit] or after commit [$to_commit] is missing in HEAD"
               echo "Skipping backup"
-              exit 0
           fi
+          echo "backup_flag=$backup_flag" >> $GITHUB_ENV
       - name: Get changed files
         id: changed-files
         if: env.backup_flag == true

@@ -56,7 +56,7 @@ jobs:
               payload["move"][parts[1]] = parts[2]
             else:
                 assert len(parts) == 2, "Invalid Entry"
-                  payload["remove"].append(parts[1])
+                payload["remove"].append(parts[1])
           pprint(payload)
           EOF
       - name: Get changed files

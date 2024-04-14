@@ -11,8 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
-      - id: get-commit
+          fetch-depth: 0
+      - name: Set backup flag
         run: |
           from_commit="${{ github.event.before }}"
           to_commit="${{ github.event.after }}"
@@ -28,7 +28,8 @@ jobs:
               echo "Skipping backup"
           fi
           echo "backup_flag=$backup_flag" >> $GITHUB_ENV
-      - if: env.backup_flag == 'true'
+      - name: Load backup script
+        if: env.backup_flag == 'true'
         run: |
           cat << 'EOF' > script.py
           import requests
@@ -56,17 +57,14 @@ jobs:
                                    json=payload)
           response.raise_for_status()
           EOF
-      - id: changed-files
+      - name: Get changes
         if: env.backup_flag == 'true'
         run: |
-          if ${{ github.event_name == 'pull_request' }}; then
-              git diff --name-status -r HEAD^1 HEAD > changed_files.txt
-          else
-              from_commit="${{ github.event.before }}"
-              to_commit="${{ github.event.after }}"
-              git diff --name-status "$from_commit" "$to_commit" > changed_files.txt
-          fi
+          from_commit="${{ github.event.before }}"
+          to_commit="${{ github.event.after }}"
+          git diff --name-status "$from_commit" "$to_commit" > changed_files.txt
           echo "changed_files=changed_files.txt" >> $GITHUB_ENV
-      - if: env.backup_flag == 'true'
+      - name: Initiate backup
+        if: env.backup_flag == 'true'
         run: |
           python script.py

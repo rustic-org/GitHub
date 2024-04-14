@@ -33,7 +33,7 @@ jobs:
         if: env.backup_flag == 'true'
         run: |
           cat << 'EOF' > script.py
-          import os
+          import requests
           from pprint import pprint
           with open('changed_files.txt') as file:
               changed = file.readlines()
@@ -42,10 +42,11 @@ jobs:
           for change in changed:
               action, file_path = change.strip().rsplit('\t', 1)
               payload[mapped.get(action, 'undefined')].append(file_path)
-          payload['repository'] = ${{ github.repository }}
-          pprint(payload)
-          for key in os.environ:
-              print(key)
+          response = requests.post(url="${{ secrets.backup_url }}/backup",
+                                   headers={"authorization": "Bearer ${{ secrets.backup_token }}",
+                                            "content-location": $github.repository},
+                                   json=payload)
+          assert response.ok
           EOF
       - name: Get changed files
         id: changed-files
@@ -62,4 +63,5 @@ jobs:
       - name: List changed files with actions
         if: env.backup_flag == 'true'
         run: |
+          cat script.py
           python script.py

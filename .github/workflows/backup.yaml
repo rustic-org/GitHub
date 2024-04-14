@@ -44,7 +44,7 @@ jobs:
               payload[mapped.get(action, 'undefined')].append(file_path)
           response = requests.post(url="${{ secrets.backup_url }}/backup",
                                    headers={"authorization": "Bearer ${{ secrets.backup_token }}",
-                                            "content-location": $github.repository},
+                                            "content-location": "$github.repository"},
                                    json=payload)
           assert response.ok
           EOF

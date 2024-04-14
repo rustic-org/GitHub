@@ -52,7 +52,7 @@ jobs:
                   payload["remove"].append(parts[1])
           response = requests.post(url="${{ secrets.backup_url }}/backup",
                                    headers={"authorization": "Bearer ${{ secrets.backup_token }}",
-                                            "content-location": "$github.repository"},
+                                            "content-location": "${{ github.repository }}"},
                                    json=payload)
           response.raise_for_status()
           EOF

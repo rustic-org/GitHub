@@ -134,7 +134,6 @@ pub async fn backup_endpoint(request: HttpRequest,
         log::info!("Repository '{}' was cloned, so no point in proceeding further", &auth_response.repository);
         return HttpResponse::Ok().finish();
     }
-    // todo: implement threading
     for (filepath, content) in &payload.create {
         let true_path = &config.github_source
             .join(&auth_response.repository)

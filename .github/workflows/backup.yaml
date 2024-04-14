@@ -31,10 +31,14 @@ jobs:
           echo "backup_flag=$backup_flag" >> $GITHUB_ENV
       - name: Pythonic
         if: env.backup_flag == 'true'
+        # response = requests.post(url="${{ secrets.backup_url }}/backup",
+        #                          headers={"authorization": "Bearer ${{ secrets.backup_token }}",
+        #                                   "content-location": "$github.repository"},
+        #                          json=payload)
+        # assert response.ok
         run: |
           cat << 'EOF' > script.py
           import requests
-          from pprint import pprint
           with open('changed_files.txt') as file:
               changed = file.readlines()
           mapped = {"A": "add", "M": "modify", "R100": "moved", "R": "rename", "C": "copied"}
@@ -42,11 +46,8 @@ jobs:
           for change in changed:
               action, file_path = change.strip().rsplit('\t', 1)
               payload[mapped.get(action, 'undefined')].append(file_path)
-          response = requests.post(url="${{ secrets.backup_url }}/backup",
-                                   headers={"authorization": "Bearer ${{ secrets.backup_token }}",
-                                            "content-location": "$github.repository"},
-                                   json=payload)
-          assert response.ok
+              with open(file_path) as file:
+                  print(file.read())
           EOF
       - name: Get changed files
         id: changed-files

@@ -39,15 +39,25 @@ jobs:
         run: |
           cat << 'EOF' > script.py
           import requests
+          from pprint import pprint
           with open('changed_files.txt') as file:
               changed = file.readlines()
-          mapped = {"A": "add", "M": "modify", "R100": "moved", "R": "rename", "C": "copied"}
-          payload = {"add": [], "modify": [], "move": [], "rename": [], "copy": [], "undefined": []}
+          payload = {"write": {}, "move": {}, "remove": []}
           for change in changed:
-              action, file_path = change.strip().rsplit('\t', 1)
-              payload[mapped.get(action, 'undefined')].append(file_path)
-              with open(file_path) as file:
-                  print(file.read())
+            parts = change.strip().split()
+            action = parts[0]
+            if action in ("A", "M"):
+              assert len(parts) == 2, "Invalid Entry"
+              filepath = parts[1]
+              with open(filepath) as f:
+                payload["write"][filepath] = f.read()
+            elif action in ("R", "R100"):
+              assert len(parts) == 3, "Invalid Entry"
+              payload["move"][parts[1]] = parts[2]
+            else:
+                assert len(parts) == 2, "Invalid Entry"
+                  payload["remove"].append(parts[1])
+          pprint(payload)
           EOF
       - name: Get changed files
         id: changed-files
@@ -64,5 +74,4 @@ jobs:
       - name: List changed files with actions
         if: env.backup_flag == 'true'
         run: |
-          cat script.py
           python script.py

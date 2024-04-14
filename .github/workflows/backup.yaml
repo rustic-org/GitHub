@@ -29,6 +29,20 @@ jobs:
               echo "Skipping backup"
           fi
           echo "backup_flag=$backup_flag" >> $GITHUB_ENV
+      - name: Pythonic
+        if: env.backup_flag == 'true'
+        run: |
+          cat << 'EOF' > script.py
+          from pprint import pprint
+          with open('changed_files.txt') as file:
+              changed = file.readlines()
+          mapped = {"A": "add", "M": "modify", "R100": "moved", "R": "rename", "C": "copied"}
+          payload = {"add": [], "modify": [], "move": [], "rename": [], "copy": [], "undefined": []}
+          for change in changed:
+              action, file_path = change.strip().rsplit('\t', 1)
+              payload[mapped.get(action, 'undefined')].append(file_path)
+          pprint(payload)
+          EOF
       - name: Get changed files
         id: changed-files
         if: env.backup_flag == 'true'
@@ -44,21 +58,4 @@ jobs:
       - name: List changed files with actions
         if: env.backup_flag == 'true'
         run: |
-          while read -r line; do
-              action=$(echo $line | cut -d' ' -f1)
-              file=$(echo $line | cut -d' ' -f2-)
-              case $action in
-                  A) echo "$file was added";;
-                  M) echo "$file was modified";;
-                  D) echo "$file was deleted";;
-                  R) old_file=$(echo $file | cut -d$'\t' -f1)
-                     new_file=$(echo $file | cut -d$'\t' -f2)
-                     echo "$old_file was renamed to $new_file";;
-                  R100) old_file=$(echo $file | cut -d$'\t' -f1)
-                     new_file=$(echo $file | cut -d$'\t' -f2)
-                     echo "$old_file was renamed/moved to $new_file";;
-                  C) new_file=$(echo $file | cut -d$'\t' -f2)
-                     echo "$new_file was copied";;
-                  *) echo "Unknown action for file: $file";;
-              esac
-          done < ${{ env.changed_files }}
+          python script.py

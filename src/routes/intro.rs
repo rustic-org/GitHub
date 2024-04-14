@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path};
 
 use crate::squire::command;
 
@@ -18,7 +18,7 @@ pub struct Status {
 /// # Returns
 ///
 /// Returns a boolean value to indicate results.
-pub fn validate_repo(repository: &String, storage: &PathBuf) -> Status {
+pub fn validate_repo(repository: &String, storage: &Path) -> Status {
     let destination = &storage.join(repository);
     if destination.exists() {
         log::info!("{:?} exists", destination);
@@ -43,7 +43,7 @@ pub fn validate_repo(repository: &String, storage: &PathBuf) -> Status {
     log::info!("Cloning '{}' into {:?}", repository, organization);
     // cd into {data_source}/{organization} and then clone the repository
     let cmd = format!("cd {} && git clone https://github.com/{}/{}.git",
-                      organization.to_string_lossy().to_string(), org, repo);
+                      organization.to_string_lossy(), org, repo);
     let clone_result = command::run(&cmd);
     Status {
         ok: clone_result,

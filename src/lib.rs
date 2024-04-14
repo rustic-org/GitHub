@@ -67,11 +67,11 @@ pub async fn start() -> io::Result<()> {
             .app_data(web::Data::new(config_clone.clone()))
             .app_data(web::Data::new(metadata.clone()))
             .app_data(web::Data::new(session.clone()))
+            .app_data(web::Data::new(routes::backup::Payload::default()))
             .app_data(web::PayloadConfig::default().limit(config_clone.max_payload_size))
             .wrap(squire::middleware::get_cors(config_clone.websites.clone()))
             .wrap(middleware::Logger::default())  // Adds a default logger middleware to the application
-            .service(routes::filesystem::save_files)
-            .service(routes::filesystem::remove_files)
+            .service(routes::backup::backup_endpoint)
     };
     let server = HttpServer::new(application)
         .workers(config.workers)

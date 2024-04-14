@@ -276,7 +276,6 @@ fn load_env_vars() -> settings::Config {
     let workers = parse_usize("workers").unwrap_or(settings::default_workers());
     let max_connections = parse_usize("max_connections").unwrap_or(settings::default_max_connections());
     let websites = parse_vec("websites").unwrap_or(settings::default_websites());
-    let secure_session = parse_bool("secure_session").unwrap_or(settings::default_secure_session());
     let key_file = parse_path("key_file").unwrap_or(settings::default_ssl());
     let cert_file = parse_path("cert_file").unwrap_or(settings::default_ssl());
     let max_payload_size = parse_max_payload("max_payload_size").unwrap_or(settings::default_max_payload_size());
@@ -291,7 +290,6 @@ fn load_env_vars() -> settings::Config {
         max_connections,
         max_payload_size,
         websites,
-        secure_session,
         key_file,
         cert_file,
     }

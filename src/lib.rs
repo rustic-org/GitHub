@@ -46,11 +46,6 @@ pub async fn start() -> io::Result<()> {
     }
     squire::ascii_art::random();
 
-    if config.secure_session {
-        log::warn!(
-            "Secure session is turned on! This means that the server can ONLY be hosted via HTTPS or localhost"
-        );
-    }
     // Create a dedicated clone, since it will be used within closure
     let config_clone = config.clone();
     let session = constant::session_info();

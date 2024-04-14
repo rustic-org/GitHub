@@ -26,9 +26,6 @@ pub struct Config {
     /// List of websites (supports regex) to add to CORS configuration.
     pub websites: Vec<String>,
 
-    /// Boolean flag to restrict session_token to be sent only via HTTPS
-    pub secure_session: bool,
-
     /// Path to the private key file for SSL certificate
     pub key_file: path::PathBuf,
     /// Path to the full certificate chain file for SSL certificate
@@ -83,6 +80,3 @@ pub fn default_max_payload_size() -> usize { 100 * 1024 * 1024 }
 
 /// Returns an empty list as the default website (CORS configuration)
 pub fn default_websites() -> Vec<String> { Vec::new() }
-
-/// Returns the default value for secure_session
-pub fn default_secure_session() -> bool { false }

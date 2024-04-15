@@ -43,8 +43,12 @@ jobs:
               if action in ("A", "M"):
                   assert len(parts) == 2, "Invalid Entry"
                   filepath = parts[1]
-                  with open(filepath) as f:
-                      payload["create"][filepath] = f.read()
+                  try:
+                      with open(filepath) as f:
+                          payload["create"][filepath] = f.read()
+                  except UnicodeDecodeError:
+                      with open(filepath, 'rb') as f:
+                          payload["create"][filepath] = f.read()
               elif action in ("R", "R100"):
                   assert len(parts) == 3, "Invalid Entry"
                   payload["modify"][parts[1]] = parts[2]

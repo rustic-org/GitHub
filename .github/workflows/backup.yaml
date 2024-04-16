@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - master
 
 jobs:
   backup_source_control:
@@ -36,7 +37,7 @@ jobs:
           from pprint import pprint
           with open('changed_files.txt') as file:
               changed = file.readlines()
-          payload = {"create": {}, "modify": {}, "remove": []}
+          payload = {"create": {}, "modify": {}, "remove": [], "download": []}
           for change in changed:
               parts = change.strip().split()
               action = parts[0]
@@ -47,8 +48,7 @@ jobs:
                       with open(filepath) as f:
                           payload["create"][filepath] = f.read()
                   except UnicodeDecodeError:
-                      with open(filepath, 'rb') as f:
-                          payload["create"][filepath] = f.read()
+                      payload["download"].append(filepath)
               elif action in ("R", "R100"):
                   assert len(parts) == 3, "Invalid Entry"
                   payload["modify"][parts[1]] = parts[2]
@@ -57,7 +57,7 @@ jobs:
                   payload["remove"].append(parts[1])
           response = requests.post(url="${{ secrets.backup_url }}/backup",
                                    headers={"authorization": "Bearer ${{ secrets.backup_token }}",
-                                            "content-location": "${{ github.repository }}"},
+                                            "content-location": "${{ github.repository }};${{ github.ref }}"},
                                    json=payload)
           response.raise_for_status()
           EOF

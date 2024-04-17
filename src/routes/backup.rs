@@ -262,7 +262,7 @@ pub async fn backup_endpoint(request: HttpRequest,
     }
     for downloadable in &payload.download {
         match download_file(&auth_response, &config, downloadable).await {
-            Ok(_) => log::info!("{} downloaded successfully!", downloadable),
+            Ok(_) => log::info!("Download successful: {}", downloadable),
             Err(err) => {
                 let error = format!("Error downloading file: {}", err);
                 log::error!("{}", error);

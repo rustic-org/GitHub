@@ -1,10 +1,9 @@
-name: Backup Source Control
+name: Backup
 
 on:
   push:
     branches:
       - main
-      - master
 
 jobs:
   backup_source_control:

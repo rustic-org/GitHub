@@ -23,8 +23,10 @@ jobs:
         run: |
           if [ -n "${{ inputs.backup_clone }}" ]; then
             echo "backup_clone=${{ inputs.backup_clone }}" >> $GITHUB_ENV
-          else
+          elif [ -n "${{ vars.backup_clone }}" ]; then
             echo "backup_clone=${{ vars.backup_clone }}" >> $GITHUB_ENV
+          else
+            echo "backup_clone=false" >> $GITHUB_ENV
           fi
       # Sets 'backup_flag' to true/false, based on the commit head
       # Sets to false, only if commit head is not found in commit history, happens when a commit is reset

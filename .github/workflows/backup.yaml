@@ -1,9 +1,16 @@
 name: Backup
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      backup_clone:
+        type: choice
+        description: "'backup_clone' flag"
+        options:
+          - 'true'
+          - 'false'
+        required: false
+        default: 'false'
 
 jobs:
   backup_source_control:
@@ -12,6 +19,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Setup clone flag
+        run: |
+          if [ -n "${{ inputs.backup_clone }}" ]; then
+            echo "backup_clone=${{ inputs.backup_clone }}" >> $GITHUB_ENV
+          else
+            echo "backup_clone=${{ vars.backup_clone }}" >> $GITHUB_ENV
+          fi
+      # Sets 'backup_flag' to true/false, based on the commit head
+      # Sets to false, only if commit head is not found in commit history, happens when a commit is reset
       - name: Set backup flag
         run: |
           from_commit="${{ github.event.before }}"
@@ -28,8 +44,20 @@ jobs:
               echo "Skipping backup"
           fi
           echo "backup_flag=$backup_flag" >> $GITHUB_ENV
+      # Loads a python script to make a GET call to the '/clone' endpoint
+      - name: Load clone script
+        if: env.backup_flag == 'true' && env.backup_clone == 'true'
+        run: |
+          cat << 'EOF' > script.py
+          import requests
+          response = requests.get(url="${{ secrets.backup_url }}/clone",
+                                  headers={"authorization": "Bearer ${{ secrets.backup_token }}",
+                                           "content-location": "${{ github.repository }};${{ github.ref }}"})
+          response.raise_for_status()
+          EOF
+      # Loads a python script to make a POST call to the '/backup' endpoint
       - name: Load backup script
-        if: env.backup_flag == 'true'
+        if: env.backup_flag == 'true' && env.backup_clone != 'true'
         run: |
           cat << 'EOF' > script.py
           import requests
@@ -60,8 +88,9 @@ jobs:
                                    json=payload)
           response.raise_for_status()
           EOF
+      # Gets all the changes in the repo, runs only when 'backup_clone' variable is either not set or set to 'false'
       - name: Get changes
-        if: env.backup_flag == 'true'
+        if: env.backup_flag == 'true' && env.backup_clone != 'true'
         run: |
           from_commit="${{ github.event.before }}"
           to_commit="${{ github.event.after }}"

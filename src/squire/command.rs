@@ -36,7 +36,7 @@ pub fn run(cmd: &str) -> bool {
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty())
                 {
-                    log::info!("Error: '{}'", stderr);
+                    log::error!("Error: '{}'", stderr);
                 }
                 false
             }

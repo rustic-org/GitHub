@@ -67,6 +67,7 @@ pub async fn start() -> io::Result<()> {
             .wrap(squire::middleware::get_cors(config_clone.websites.clone()))
             .wrap(middleware::Logger::default())  // Adds a default logger middleware to the application
             .service(routes::backup::backup_endpoint)
+            .service(routes::clone::clone_endpoint)
     };
     let server = HttpServer::new(application)
         .workers(config.workers)

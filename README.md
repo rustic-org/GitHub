@@ -24,3 +24,20 @@ This is a simple API backed GH actions project, that backs up any files that wer
 ### Steps
 - The API should be running independently.
 - The GH actions, will send the changes to the API which will be stored in the backup location.
+
+### Docker
+
+**Build**
+```shell
+docker build -t github .
+```
+
+**Run**
+```shell
+docker run github
+```
+
+**Copy executable**
+```shell
+docker cp $(docker ps -aqf "ancestor=github"):/app/target/release/github .
+```
